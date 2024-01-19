@@ -1,0 +1,140 @@
+<style>
+
+    /* Stil Dosyası (style.css) */
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+#chat-container {
+    max-width: 600px;
+    margin: 20px auto;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+#message-box {
+    padding: 20px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+#user-input {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+}
+
+#message-input {
+    flex-grow: 1;
+    padding: 8px;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    padding: 8px 12px;
+    background-color: #4CAF50;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+</style>
+
+<!-- /views/chat.ejs -->
+<!-- /views/chat.ejs -->
+
+<%- include('navBar') %>
+
+<div id="chat-container">
+    <div id="message-box"></div>
+    <div id="user-input">
+        <input type="text" id="message-input" placeholder="Mesajınızı buraya yazın...">
+        <button onclick="sendMessage()">Gönder</button>
+    </div>
+</div>
+
+<script>
+    const socket = new WebSocket('ws://localhost:3000');
+    const username = "<%= user.username %>"; // Bu, kullanıcı adını server.js tarafından alır
+
+    let otherUser = null; // Başlangıçta diğer kullanıcının adını saklamak için null olarak ayarla
+
+socket.addEventListener('message', function (event) {
+    const messageBox = document.getElementById('message-box');
+    const messageInput = document.getElementById('message-input');
+
+    if (event.data instanceof Blob) {
+        // Blob'u metin verisine dönüştür
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const textMessage = event.target.result;
+
+            if (otherUser) {
+                // Diğer kullanıcının adını yalnızca bir kere göster
+                messageBox.innerHTML += '<p><strong>' + otherUser + ':</strong> ' + textMessage + '</p>';
+                otherUser = null;
+            } else {
+                // Diğer kullanıcının adını gösterme
+                messageBox.innerHTML += '<p>' + textMessage + '</p>';
+            }
+        };
+        reader.readAsText(event.data);
+    } else {
+        // Blob değilse, direkt olarak metin olarak ekle
+        const messageData = JSON.parse(event.data);
+        if (messageData.username) {
+            otherUser = messageData.username;
+        }
+
+        // Diğer kullanıcının adını yalnızca bir kere göster
+        if (otherUser) {
+            messageBox.innerHTML += '<p><strong>' + otherUser + ':</strong> ' + messageData.content + '</p>';
+            otherUser = null;
+        } else {
+            // Diğer kullanıcının adını gösterme
+            messageBox.innerHTML += '<p>' + messageData.content + '</p>';
+        }
+    }
+
+    // Kullanıcının kendi gönderdiği mesajı ekle
+    if (messageInput.value.trim() !== '') {
+        messageBox.innerHTML += '<p><strong>Sen:</strong> ' + messageInput.value + '</p>';
+        messageInput.value = '';
+    }
+});
+
+    function sendMessage() {
+        const messageInput = document.getElementById('message-input');
+        const message = messageInput.value;
+
+        if (socket.readyState === WebSocket.OPEN) {
+            // Mesajı bir nesne içinde gönder, içinde kullanıcı adı ve mesaj var
+            const messageObject = {
+                username: username,
+                content: message
+            };
+            socket.send(JSON.stringify(messageObject));
+        } else {
+            console.error('WebSocket bağlantısı kapalı veya kapanma aşamasında.');
+        }
+
+        const messageBox = document.getElementById('message-box');
+        if (messageInput.value.trim() !== '') {
+            messageBox.innerHTML += '<p><strong>Sen:</strong> ' + messageInput.value + '</p>';
+            messageInput.value = '';
+        }
+    }
+</script>

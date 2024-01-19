@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <!-- Diğer başlık etiketleri buraya eklenebilir -->
+    <style>
+        /* CSS stilleri buraya eklenebilir */
+        nav {
+            background-color: #333;
+        }
+
+        ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        li {
+            float: left;
+        }
+
+        li a {
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+
+        li a:hover {
+            background-color: #111;
+        }
+    </style>
+</head>
+<body>
+
+<%- include('navBar') %>
+
+<%- body %>
+
+<!-- Kullanıcı giriş yapmışsa chat özelliklerini yükle -->
+<% if (isAuthenticated) { %>
+    <h2> Chat </h2>
+    <div id="chat-container">
+        <div id="message-box"></div>
+        <div id="user-input">
+            <input type="text" id="message-input" placeholder="Mesajınızı buraya yazın...">
+            <button onclick="sendMessage()">Gönder</button>
+        </div>
+    </div>
+    <script>
+        const socket = new WebSocket('ws://localhost:3000');
+
+        // Websocket mesajları dinle
+        socket.addEventListener('message', function (event) {
+            const messageBox = document.getElementById('message-box');
+            messageBox.innerHTML += '<p>' + event.data + '</p>';
+        });
+
+        // Mesajı gönderme
+        function sendMessage(message) {
+            // WebSocket bağlantısının açık olup olmadığını kontrol et
+            if (socket.readyState === WebSocket.OPEN) {
+                // Mesajı gönder
+                socket.send(message);
+            } else {
+                console.error('WebSocket bağlantısı kapalı veya kapanma aşamasında.');
+            }
+        }
+    </script>
+<% } %>
+
+</body>
+</html>
